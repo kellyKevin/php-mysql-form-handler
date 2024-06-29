@@ -3,139 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback Form</title>
+    <title>Hypermarket Product Pricing Calculator</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        form {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        }
-        input[type=text], input[type=email], textarea, input[type=number] {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        input[type=submit] {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        input[type=submit]:hover {
-            background-color: #45a049;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
         table, th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
         }
     </style>
-    <script>
-        function validateForm() {
-            var name = document.getElementById('name').value;
-            var email = document.getElementById('email').value;
-            var feedback = document.getElementById('feedback').value;
-            var rating = document.getElementById('rating').value;
-
-            if (name.trim() === '' || email.trim() === '' || feedback.trim() === '' || rating.trim() === '') {
-                alert('All fields are required');
-                return false;
-            }
-
-            return true;
-        }
-    </script>
 </head>
 <body>
-    <h2>Feedback Form</h2>
-    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="POST" onsubmit="return validateForm()">
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required><br><br>
-
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required><br><br>
-
-        <label for="feedback">Feedback:</label><br>
-        <textarea id="feedback" name="feedback" rows="4" required></textarea><br><br>
-
-        <label for="rating">Rating (1-5):</label>
-        <input type="number" id="rating" name="rating" min="1" max="5" required><br><br>
-
-        <input type="submit" value="Submit">
+    <h1>Hypermarket Product Pricing Calculator</h1>
+    <form method="post">
+        <table>
+            <tr>
+                <th>Product</th>
+                <th>Buying Price (Ksh)</th>
+            </tr>
+            <?php for ($i = 1; $i <= 10; $i++) { ?>
+            <tr>
+                <td>Product <?php echo $i; ?></td>
+                <td><input type="number" step="0.01" name="price<?php echo $i; ?>" required></td>
+            </tr>
+            <?php } ?>
+            <tr>
+                <td>VAT (%)</td>
+                <td><input type="number" step="0.01" name="vat" value="16" required></td>
+            </tr>
+            <tr>
+                <td>General Expenses (%)</td>
+                <td><input type="number" step="0.01" name="expenses" value="10" required></td>
+            </tr>
+            <tr>
+                <td>Profit Margin (%)</td>
+                <td><input type="number" step="0.01" name="profit" value="20" required></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><button type="submit">Calculate</button></td>
+            </tr>
+        </table>
     </form>
-
     <?php
-    // Database connection details
-    $servername = "localhost";
-    $username = "root";
-    $password = "";
-    $dbname = "campaign_feedback";
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $vat = $_POST['vat'] / 100;
+            $expenses = $_POST['expenses'] / 100;
+            $profit = $_POST['profit'] / 100;
 
-    // Connect to the database
-    $conn = new mysqli($servername, $username, $password, $dbname);
+            echo "<h2>Product Pricing Details</h2>";
+            echo "<table>";
+            echo "<tr><th>Product</th><th>VAT (Ksh)</th><th>General Expense (Ksh)</th><th>Profit (Ksh)</th><th>Selling Price (Ksh)</th></tr>";
 
-    // Check the connection
-    if ($conn->connect_error) {
-        die("Connection failed: " . $conn->connect_error);
-    }
+            for ($i = 1; $i <= 10; $i++) {
+                $price = $_POST["price$i"];
+                $vat_amount = $price * $vat;
+                $expense_amount = $price * $expenses;
+                $profit_amount = $price * $profit;
+                $selling_price = $price + $vat_amount + $expense_amount + $profit_amount;
 
-    // Handle form submission
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $name = $conn->real_escape_string($_POST['name']);
-        $email = $conn->real_escape_string($_POST['email']);
-        $feedback = $conn->real_escape_string($_POST['feedback']);
-        $rating = (int)$_POST['rating']; // Cast to integer for safety
+                echo "<tr>";
+                echo "<td>Product $i</td>";
+                echo "<td>" . number_format($vat_amount, 2) . "</td>";
+                echo "<td>" . number_format($expense_amount, 2) . "</td>";
+                echo "<td>" . number_format($profit_amount, 2) . "</td>";
+                echo "<td>" . number_format($selling_price, 2) . "</td>";
+                echo "</tr>";
+            }
 
-        // Prepare and execute the SQL query
-        $sql = "INSERT INTO feedback (name, email, feedback, rating) VALUES ('$name', '$email', '$feedback', '$rating')";
-
-        if ($conn->query($sql) === TRUE) {
-            echo "<p>Feedback submitted successfully</p>";
-        } else {
-            echo "Error: " . $sql . "<br>" . $conn->error;
+            echo "</table>";
         }
-    }
-
-    // Retrieve and display feedback data
-    $sql = "SELECT * FROM feedback ORDER BY id DESC"; // Order by latest feedback first
-    $result = $conn->query($sql);
-
-    if ($result->num_rows > 0) {
-        echo "<h2>Feedback Data</h2>";
-        echo "<table>";
-        echo "<tr><th>ID</th><th>Name</th><th>Email</th><th>Feedback</th><th>Rating</th><th>Date</th></tr>";
-
-        // Output data for each row
-        while ($row = $result->fetch_assoc()) {
-            echo "<tr><td>" . $row["id"] . "</td><td>" . htmlspecialchars($row["name"]) . "</td><td>" . htmlspecialchars($row["email"]) . "</td><td>" . htmlspecialchars($row["feedback"]) . "</td><td>" . htmlspecialchars($row["rating"]) . "</td><td>" . htmlspecialchars($row["submission_date"]) . "</td></tr>";
-        }
-
-        echo "</table>";
-    } else {
-        echo "<p>No feedback data available</p>";
-    }
-
-    // Close the database connection
-    $conn->close();
     ?>
 </body>
 </html>
